@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskSpec",
+  "type": "object",
+  "properties": {
+    "version": {
+      "title": "Version",
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "title": "Id",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "stage": {
+      "title": "Stage",
+      "type": "string",
+      "enum": [
+        "draft",
+        "stable"
+      ],
+      "default": "draft"
+    },
+    "requires": {
+      "title": "Requires",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "artifacts": {
+      "title": "Artifacts",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ArtifactRequirement"
+      },
+      "default": []
+    },
+    "entry": {
+      "title": "Entry",
+      "type": "string"
+    },
+    "states": {
+      "title": "States",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/StateSpec"
+      }
+    }
+  },
+  "required": [
+    "version",
+    "id",
+    "title",
+    "entry",
+    "states"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ArtifactRequirement": {
+      "title": "ArtifactRequirement",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]+$"
+        },
+        "uri": {
+          "title": "Uri",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "required_paths": {
+          "title": "Required Paths",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "id",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "StateSpec": {
+      "title": "StateSpec",
+      "type": "object",
+      "properties": {
+        "expect": {
+          "title": "Expect",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]+$"
+        },
+        "terminal": {
+          "title": "Terminal",
+          "type": "boolean",
+          "default": false
+        },
+        "transitions": {
+          "title": "Transitions",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TransitionSpec"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "expect"
+      ],
+      "additionalProperties": false
+    },
+    "TransitionSpec": {
+      "title": "TransitionSpec",
+      "type": "object",
+      "properties": {
+        "locate": {
+          "title": "Locate",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]+$"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string",
+          "const": "tap_match"
+        },
+        "next": {
+          "title": "Next",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]+$"
+        }
+      },
+      "required": [
+        "locate",
+        "action",
+        "next"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

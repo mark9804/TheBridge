@@ -21,6 +21,7 @@ thebridge = "thebridge.__main__:main"
 
 [project.entry-points."thebridge.plugins"]
 android-adb = "thebridge.builtin.android_adb.plugin:create_plugin"
+azurlane-cn = "thebridge.builtin.azurlane_cn.plugin:create_plugin"
 
 [dependency-groups]
 dev = ["ruff>=0.12"]

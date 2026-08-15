@@ -13,6 +13,7 @@
 | 可用 | 事件 | `thebridge_core.events:EventBus.emit`、`subscribe` | 运行时事实 → 内部订阅者及 SSE 投影；事件不参与控制决策 |
 | 可用 | 资源预检 | `thebridge_core.artifacts:ArtifactStore.missing` | 插件/任务声明 → 源码树外固定 revision 缓存检查 |
 | 可用 | ADB 设备 | `thebridge.builtin.android_adb.plugin:create_plugin` | entry point → 原始截图与 ADB tap → `android.device@1` |
+| 草案 | 国服任务包 | `thebridge.builtin.azurlane_cn.plugin:create_plugin` | entry point → 注册军事委托领取与派遣状态图 |
 
 ## 当前主链
 

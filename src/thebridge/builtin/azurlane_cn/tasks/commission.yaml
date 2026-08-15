@@ -1,0 +1,99 @@
+version: 1
+id: azurlane-cn.commission.collect-and-dispatch
+title: 军事委托领取与派遣流程草案
+stage: draft
+requires:
+  - android.device@1
+  - azurlane-cn.ui-locator@1
+entry: home
+states:
+  home:
+    expect: azurlane-cn.page.home
+    transitions:
+      - locate: azurlane-cn.home.quick-panel.open
+        action: tap_match
+        next: quick-panel
+  quick-panel:
+    expect: azurlane-cn.page.quick-panel
+    transitions:
+      - locate: azurlane-cn.reward.commission.claim
+        action: tap_match
+        next: reward-exp
+      - locate: azurlane-cn.quick-panel.close-when-full
+        action: tap_match
+        next: done
+      - locate: azurlane-cn.reward.commission.enter
+        action: tap_match
+        next: commission-list
+  reward-exp:
+    expect: azurlane-cn.reward.commission-exp
+    transitions:
+      - locate: azurlane-cn.reward.continue
+        action: tap_match
+        next: reward-items
+  reward-items:
+    expect: azurlane-cn.reward.items
+    transitions:
+      - locate: azurlane-cn.reward.continue
+        action: tap_match
+        next: reward-next
+  reward-next:
+    expect: azurlane-cn.flow.commission-reward-next
+    transitions:
+      - locate: azurlane-cn.reward.continue
+        action: tap_match
+        next: reward-items
+      - locate: azurlane-cn.reward.commission.enter
+        action: tap_match
+        next: commission-list
+  commission-list:
+    expect: azurlane-cn.page.commission
+    transitions:
+      - locate: azurlane-cn.commission.back-when-full
+        action: tap_match
+        next: commission-return
+      - locate: azurlane-cn.commission.detail.collapse
+        action: tap_match
+        next: commission-list-ready
+      - locate: azurlane-cn.commission.pending.shortest
+        action: tap_match
+        next: commission-detail
+  commission-list-ready:
+    expect: azurlane-cn.commission.list-ready
+    transitions:
+      - locate: azurlane-cn.commission.pending.shortest
+        action: tap_match
+        next: commission-detail
+  commission-detail:
+    expect: azurlane-cn.commission.detail
+    transitions:
+      - locate: azurlane-cn.commission.detail.recommend
+        action: tap_match
+        next: commission-ready
+  commission-ready:
+    expect: azurlane-cn.commission.detail.ready
+    transitions:
+      - locate: azurlane-cn.commission.detail.start
+        action: tap_match
+        next: commission-after-start
+  commission-after-start:
+    expect: azurlane-cn.commission.start-confirmed
+    transitions:
+      - locate: azurlane-cn.commission.back-when-full
+        action: tap_match
+        next: commission-return
+      - locate: azurlane-cn.commission.detail.collapse
+        action: tap_match
+        next: commission-list-ready
+  commission-return:
+    expect: azurlane-cn.flow.commission-return
+    transitions:
+      - locate: azurlane-cn.common.info.dismiss
+        action: tap_match
+        next: quick-panel
+      - locate: azurlane-cn.quick-panel.close-when-full
+        action: tap_match
+        next: done
+  done:
+    expect: azurlane-cn.page.home
+    terminal: true

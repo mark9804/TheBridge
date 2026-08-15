@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             }
         }
     )
-    configured = os.environ.get("THEBRIDGE_PLUGINS", "")
+    configured = os.environ.get("THEBRIDGE_PLUGINS", "builtin.azurlane-cn")
     enabled = {item.strip() for item in configured.split(",") if item.strip()}
     await host.start(enabled)
     app.state.host = host

@@ -19,12 +19,13 @@ uv run thebridge serve
 仅在需要连接设备时启用 ADB 插件：
 
 ```bash
-THEBRIDGE_PLUGINS=builtin.android-adb \
+THEBRIDGE_PLUGINS=builtin.azurlane-cn,builtin.android-adb \
 THEBRIDGE_SERIAL=<adb-serial> \
 uv run thebridge serve
 ```
 
-ADB 插件使用系统 `adb`，也可通过 `THEBRIDGE_ADB` 指定路径。
+ADB 插件使用系统 `adb`，也可通过 `THEBRIDGE_ADB` 指定路径。当前军事委托状态图仍需要
+`azurlane-cn.ui-locator@1`；未启用视觉插件时任务会明确显示为 unavailable。
 
 前端：
 

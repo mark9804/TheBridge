@@ -35,7 +35,8 @@ async def run_check() -> None:
     tasks = TaskCatalog()
     host = PluginHost(tasks, ArtifactStore(), events)
     host.discover()
-    await host.start(set())
+    await host.start({"builtin.azurlane-cn"})
+    assert tasks.get("azurlane-cn.commission.collect-and-dispatch").stage == "draft"
 
     task = parse_task(
         {

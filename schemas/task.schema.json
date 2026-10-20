@@ -26,6 +26,11 @@
       ],
       "default": "draft"
     },
+    "parameters": {
+      "title": "Parameters",
+      "type": "object",
+      "additionalProperties": true
+    },
     "requires": {
       "title": "Requires",
       "type": "array",
@@ -139,7 +144,10 @@
         "action": {
           "title": "Action",
           "type": "string",
-          "const": "tap_match"
+          "enum": [
+            "tap_match",
+            "back"
+          ]
         },
         "next": {
           "title": "Next",

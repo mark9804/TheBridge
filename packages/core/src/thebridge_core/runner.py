@@ -71,7 +71,10 @@ class StateRunner:
                             raise RuntimeError("locator returned a stale frame")
                         if not match.box.fits(frame):
                             raise RuntimeError("locator returned a box outside the frame")
-                        await device.tap(match.box.center)
+                        if transition.action == "back":
+                            await device.back()
+                        else:
+                            await device.tap(match.box.center)
                         steps += 1
                         self.events.emit(
                             "bridge.action.finished",

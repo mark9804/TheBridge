@@ -1,0 +1,83 @@
+version: 1
+id: azurlane-cn.daily-build
+title: 轻型舰建造一次并领取每日奖励
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    missions.page:
+      pattern: '^任务'
+      require: ['^前往$|^领取$']
+      absent: ['获得道[具县]']
+    missions.go:
+      pattern: '^前往$'
+      anchor: '^建造舰船1次[。.]?$'
+    missions.claim:
+      pattern: '^领取$'
+      anchor: '^建造舰船1次[。.]?$'
+    build.page:
+      pattern: '^开始建造$'
+      absent: ['建造数量']
+    build.light:
+      pattern: '^轻型舰$'
+    build.light-selected:
+      pattern: '^轻型舰$'
+      index: 1
+    build.confirm:
+      pattern: '^确定$'
+      require: ['轻型舰需要消耗', '^「600物资」和「1个心智魔方」$']
+    reward.page:
+      pattern: '^获得道[具县]$'
+    reward.continue:
+      pattern: '^点击继续$'
+      require: ['获得道[具县]']
+entry: missions
+states:
+  missions:
+    expect: missions.page
+    transitions:
+      - locate: missions.claim
+        action: tap_match
+        next: reward
+      - locate: missions.go
+        action: tap_match
+        next: build
+  build:
+    expect: build.page
+    transitions:
+      - locate: build.light
+        action: tap_match
+        next: light
+  light:
+    expect: build.light-selected
+    transitions:
+      - locate: build.page
+        action: tap_match
+        next: confirm
+  confirm:
+    expect: build.confirm
+    transitions:
+      - locate: build.confirm
+        action: tap_match
+        next: started
+  started:
+    expect: build.page
+    transitions:
+      - locate: build.page
+        action: back
+        next: verify
+  verify:
+    expect: missions.page
+    transitions:
+      - locate: missions.claim
+        action: tap_match
+        next: reward
+  reward:
+    expect: reward.page
+    transitions:
+      - locate: reward.continue
+        action: tap_match
+        next: done
+  done:
+    expect: missions.page
+    terminal: true

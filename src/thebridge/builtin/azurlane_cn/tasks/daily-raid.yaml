@@ -1,0 +1,77 @@
+version: 1
+id: azurlane-cn.daily-raid
+title: 每日挑战快速完成
+stage: draft
+requires:
+  - android.device@1
+  - vision.locator@1
+parameters:
+  locators:
+    raid.page:
+      pattern: '(?i)^lv[.．]?\d+$'
+      absent: ['获得道[具县]']
+    raid.level:
+      pattern: '(?i)^lv[.．]?\d+$'
+      index: 0
+      absent: ['破交作战']
+    raid.piracy-level:
+      pattern: '(?i)^lv[.．]?\d+$'
+      require: ['破交作战']
+      index: 1
+    raid.quick:
+      pattern: '^快速挑战[1-9]\d*次$'
+      absent: ['破交作战']
+    raid.piracy-quick:
+      pattern: '^快速挑战[1-9]\d*次$'
+      require: ['破交作战', '(?i)^lv[.．]?75$']
+    raid.ready:
+      pattern: '^快速挑战'
+    raid.reward:
+      pattern: '^获得道[具县]$'
+    raid.continue:
+      pattern: '^点击继续$'
+      require: ['获得道[具县]']
+    raid.cards:
+      pattern: '每周可挑战'
+      absent: ['获得道[具县]', '(?i)^lv[.．]?\d+$']
+entry: levels
+states:
+  levels:
+    expect: raid.page
+    transitions:
+      - locate: raid.piracy-quick
+        action: tap_match
+        next: reward
+      - locate: raid.quick
+        action: tap_match
+        next: reward
+      - locate: raid.piracy-level
+        action: tap_match
+        next: ready
+      - locate: raid.level
+        action: tap_match
+        next: ready
+  ready:
+    expect: raid.ready
+    transitions:
+      - locate: raid.piracy-quick
+        action: tap_match
+        next: reward
+      - locate: raid.quick
+        action: tap_match
+        next: reward
+  reward:
+    expect: raid.reward
+    transitions:
+      - locate: raid.continue
+        action: tap_match
+        next: return
+  return:
+    expect: raid.page
+    transitions:
+      - locate: raid.page
+        action: back
+        next: done
+  done:
+    expect: raid.cards
+    terminal: true

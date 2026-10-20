@@ -1,0 +1,36 @@
+version: 1
+id: azurlane-cn.daily-rewards
+title: 领取当前每日任务奖励
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    missions.page:
+      pattern: '^任务'
+      require: ['^前往$|^领取$']
+      absent: ['获得道[具县]']
+    missions.claim:
+      pattern: '^全部领取$'
+      require: ['^领取$']
+    reward.page:
+      pattern: '^获得道[具县]$'
+    reward.continue:
+      pattern: '^点击继续$'
+      require: ['获得道[具县]']
+entry: missions
+states:
+  missions:
+    expect: missions.page
+    transitions:
+      - locate: missions.claim
+        action: tap_match
+        next: reward
+  reward:
+    expect: reward.page
+    transitions:
+      - locate: reward.continue
+        action: tap_match
+        next: done
+  done:
+    expect: missions.page
+    terminal: true

@@ -2,10 +2,23 @@ version: 1
 id: azurlane-cn.commission.collect-and-dispatch
 title: 军事委托领取与派遣流程草案
 stage: draft
+parameters:
+  commission_priority: # 默认从紧急委托开始
+    - night_long # GMT+8 21:00–02:00 的 6 小时以上紧急委托
+    - gem # 钻石委托
+    - cognitive_chip # 心智单元
+    - oil # 石油
+    - cube # 心智魔方
+    - shortest # 最短时间
 requires:
-  - android.device@1
-  - azurlane-cn.ui-locator@1
+  - android.device@1 # 设备操作
+  - azurlane-cn.commission-selector@1 # 委托筛选，处理委托顺序
+  - azurlane-cn.ui-locator@1 # 视觉定位
+
+# 初始状态入口定义
 entry: home
+
+# 状态机可用状态
 states:
   home:
     expect: azurlane-cn.page.home
@@ -55,36 +68,111 @@ states:
       - locate: azurlane-cn.commission.detail.collapse
         action: tap_match
         next: commission-list-ready
-      - locate: azurlane-cn.commission.pending.shortest
+      - locate: azurlane-cn.commission.tab.urgent.inactive
         action: tap_match
-        next: commission-detail
+        next: urgent-list-ready
+      - locate: azurlane-cn.commission.pending.selected
+        action: tap_match
+        next: urgent-detail
+      - locate: azurlane-cn.commission.tab.daily.inactive
+        action: tap_match
+        next: daily-list-ready
+      - locate: azurlane-cn.commission.back
+        action: tap_match
+        next: commission-return
   commission-list-ready:
     expect: azurlane-cn.commission.list-ready
     transitions:
-      - locate: azurlane-cn.commission.pending.shortest
+      - locate: azurlane-cn.commission.back-when-full
         action: tap_match
-        next: commission-detail
-  commission-detail:
+        next: commission-return
+      - locate: azurlane-cn.commission.tab.urgent.inactive
+        action: tap_match
+        next: urgent-list-ready
+      - locate: azurlane-cn.commission.pending.selected
+        action: tap_match
+        next: urgent-detail
+      - locate: azurlane-cn.commission.tab.daily.inactive
+        action: tap_match
+        next: daily-list-ready
+      - locate: azurlane-cn.commission.back
+        action: tap_match
+        next: commission-return
+  urgent-list-ready:
+    expect: azurlane-cn.commission.list-ready
+    transitions:
+      - locate: azurlane-cn.commission.back-when-full
+        action: tap_match
+        next: commission-return
+      - locate: azurlane-cn.commission.pending.selected
+        action: tap_match
+        next: urgent-detail
+      - locate: azurlane-cn.commission.tab.daily.inactive
+        action: tap_match
+        next: daily-list-ready
+      - locate: azurlane-cn.commission.back
+        action: tap_match
+        next: commission-return
+  urgent-detail:
     expect: azurlane-cn.commission.detail
     transitions:
       - locate: azurlane-cn.commission.detail.recommend
         action: tap_match
-        next: commission-ready
-  commission-ready:
+        next: urgent-ready
+  urgent-ready:
     expect: azurlane-cn.commission.detail.ready
     transitions:
       - locate: azurlane-cn.commission.detail.start
         action: tap_match
-        next: commission-after-start
-  commission-after-start:
-    expect: azurlane-cn.commission.start-confirmed
+        next: urgent-after-start
+  urgent-after-start:
+    expect: azurlane-cn.commission.start-result
     transitions:
+      - locate: azurlane-cn.commission.cost.confirm
+        action: tap_match
+        next: urgent-after-start
       - locate: azurlane-cn.commission.back-when-full
         action: tap_match
         next: commission-return
       - locate: azurlane-cn.commission.detail.collapse
         action: tap_match
-        next: commission-list-ready
+        next: urgent-list-ready
+  daily-list-ready:
+    expect: azurlane-cn.commission.list-ready
+    transitions:
+      - locate: azurlane-cn.commission.back-when-full
+        action: tap_match
+        next: commission-return
+      - locate: azurlane-cn.commission.pending.selected
+        action: tap_match
+        next: daily-detail
+      - locate: azurlane-cn.commission.back
+        action: tap_match
+        next: commission-return
+  daily-detail:
+    expect: azurlane-cn.commission.detail
+    transitions:
+      - locate: azurlane-cn.commission.detail.recommend
+        action: tap_match
+        next: daily-ready
+  daily-ready:
+    expect: azurlane-cn.commission.detail.ready
+    transitions:
+      - locate: azurlane-cn.commission.detail.start
+        action: tap_match
+        next: daily-after-start
+  daily-after-start:
+    expect: azurlane-cn.commission.start-result
+    transitions:
+      - locate: azurlane-cn.commission.cost.confirm
+        action: tap_match
+        next: daily-after-start
+      - locate: azurlane-cn.commission.back-when-full
+        action: tap_match
+        next: commission-return
+      - locate: azurlane-cn.commission.detail.collapse
+        action: tap_match
+        next: daily-list-ready
   commission-return:
     expect: azurlane-cn.flow.commission-return
     transitions:

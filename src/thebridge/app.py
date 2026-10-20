@@ -46,15 +46,18 @@ class TaskSummary(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    host.discover(
-        {
-            "builtin.android-adb": {
-                "adb_path": os.environ.get("THEBRIDGE_ADB", "adb"),
-                "serial": os.environ.get("THEBRIDGE_SERIAL") or None,
-                "timeout_seconds": os.environ.get("THEBRIDGE_ADB_TIMEOUT", "10"),
-            }
+    configs: dict[str, object] = {
+        "builtin.android-adb": {
+            "adb_path": os.environ.get("THEBRIDGE_ADB", "adb"),
+            "serial": os.environ.get("THEBRIDGE_SERIAL") or None,
+            "timeout_seconds": os.environ.get("THEBRIDGE_ADB_TIMEOUT", "10"),
         }
-    )
+    }
+    if priority := os.environ.get("THEBRIDGE_COMMISSION_PRIORITY"):
+        configs["builtin.azurlane-cn"] = {
+            "commission_priority": [item.strip() for item in priority.split(",")]
+        }
+    host.discover(configs)
     configured = os.environ.get("THEBRIDGE_PLUGINS", "builtin.azurlane-cn")
     enabled = {item.strip() for item in configured.split(",") if item.strip()}
     await host.start(enabled)

@@ -1,0 +1,97 @@
+version: 1
+id: azurlane-cn.daily-campaign
+title: 每日主线自动作战
+stage: draft
+requires:
+  - android.device@1
+  - vision.locator@1
+parameters:
+  plugins:
+    builtin.azurlane-campaign:
+      stages:
+        hard: "12-2"
+        normal: "12-4"
+      mode: hard
+      runs: 3
+      rules:
+        campaign.map:
+          pattern: '^第\d+章$'
+        campaign.briefing:
+          pattern: '^立刻前往$'
+          require: ['^关卡产出$']
+        campaign.fleet:
+          pattern: '^舰队选择$'
+        campaign.repeat:
+          pattern: '^连续作战$'
+          require: ['^舰队选择$']
+        campaign.runs:
+          pattern: '^作战次数$'
+          require: ['^连续作战$']
+        campaign.runs-plus:
+          pattern: '^\d+$'
+          anchor: '^作战次数$'
+          require: ['^连续作战$']
+          offset: [4, 0]
+        campaign.runs-minus:
+          pattern: '^\d+$'
+          anchor: '^作战次数$'
+          require: ['^连续作战$']
+          offset: [-4, 0]
+        campaign.auto-warning:
+          pattern: '^知道了$'
+          require: ['注意，自律战斗时可能出现以下情况']
+        campaign.wait:
+          pattern: '自律|连续作战|合计获得奖励'
+entry: navigate
+states:
+  navigate:
+    expect: campaign.map
+    transitions:
+      - locate: campaign.mode-switch
+        action: tap_match
+        next: navigate
+      - locate: campaign.next-chapter
+        action: tap_match
+        next: navigate
+      - locate: campaign.previous-chapter
+        action: tap_match
+        next: navigate
+      - locate: campaign.stage
+        action: tap_match
+        next: briefing
+  briefing:
+    expect: campaign.briefing
+    transitions:
+      - locate: campaign.briefing-go
+        action: tap_match
+        next: fleet
+  fleet:
+    expect: campaign.fleet
+    transitions:
+      - locate: campaign.repeat
+        action: tap_match
+        next: runs
+  runs:
+    expect: campaign.runs
+    transitions:
+      - locate: campaign.runs-increase
+        action: tap_match
+        next: runs
+      - locate: campaign.runs-decrease
+        action: tap_match
+        next: runs
+      - locate: campaign.runs-start
+        action: tap_match
+        next: result
+  result:
+    expect: campaign.wait
+    transitions:
+      - locate: campaign.auto-warning
+        action: tap_match
+        next: result
+      - locate: campaign.result-leave
+        action: tap_match
+        next: done
+  done:
+    expect: campaign.map
+    terminal: true

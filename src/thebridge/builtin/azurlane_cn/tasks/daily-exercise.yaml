@@ -1,0 +1,109 @@
+version: 1
+id: azurlane-cn.daily-exercise
+title: 消耗剩余军事演习次数
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  plugins:
+    builtin.azurlane-exercise:
+      max_power: 26000
+      max_refreshes: 5
+      rules:
+        exercise.entry:
+          pattern: '^演习次数$|^任务|^出击$|^主线$|^获得道[具县]$'
+        exercise.mission-go:
+          pattern: '^前往$'
+          anchor: '参与1次军事演习'
+          require: ['^任务']
+        exercise.menu-go:
+          pattern: '^演习$'
+          require: ['^主线$']
+        exercise.home-go:
+          pattern: '^出击$'
+          require: ['^任务$']
+        exercise.detail:
+          pattern: '^演习对手信息$'
+        exercise.formation:
+          pattern: '^编队$'
+          require: ['击败所有的敌方角色']
+        exercise.sortie:
+          pattern: '^出击$'
+          require: ['^编队$', '击败所有的敌方角色']
+        exercise.battle-result:
+          pattern: '^点击继续$'
+          require: ['^战斗评价$']
+        exercise.reward:
+          pattern: '^获得道[具县]$|^积分[+＋-]?\d+$'
+        exercise.reward-continue:
+          pattern: '^点击继续$'
+          require: ['^获得道[具县]$']
+        exercise.report:
+          pattern: '^积分[+＋-]?\d+$'
+        exercise.report-confirm:
+          pattern: '^确定$'
+          require: ['^积分[+＋-]?\d+$']
+        exercise.returned:
+          pattern: '^主线$|^任务'
+          absent: ['^演习次数$']
+entry: opponents
+states:
+  opponents:
+    expect: exercise.entry
+    transitions:
+      - locate: exercise.reward-continue
+        action: tap_match
+        next: report
+      - locate: exercise.exhausted
+        action: back
+        next: done
+      - locate: exercise.opponent
+        action: tap_match
+        next: detail
+      - locate: exercise.refresh
+        action: tap_match
+        next: opponents
+      - locate: exercise.mission-go
+        action: tap_match
+        next: opponents
+      - locate: exercise.menu-go
+        action: tap_match
+        next: opponents
+      - locate: exercise.home-go
+        action: tap_match
+        next: opponents
+  detail:
+    expect: exercise.detail
+    transitions:
+      - locate: exercise.start
+        action: tap_match
+        next: formation
+  formation:
+    expect: exercise.formation
+    transitions:
+      - locate: exercise.sortie
+        action: tap_match
+        next: battle
+  battle:
+    expect: exercise.battle-result
+    transitions:
+      - locate: exercise.battle-result
+        action: tap_match
+        next: reward
+  reward:
+    expect: exercise.reward
+    transitions:
+      - locate: exercise.report-confirm
+        action: tap_match
+        next: opponents
+      - locate: exercise.reward-continue
+        action: tap_match
+        next: report
+  report:
+    expect: exercise.report
+    transitions:
+      - locate: exercise.report-confirm
+        action: tap_match
+        next: opponents
+  done:
+    expect: exercise.returned
+    terminal: true

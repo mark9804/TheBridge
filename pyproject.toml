@@ -22,6 +22,15 @@ thebridge = "thebridge.__main__:main"
 [project.entry-points."thebridge.plugins"]
 android-adb = "thebridge.builtin.android_adb.plugin:create_plugin"
 azurlane-cn = "thebridge.builtin.azurlane_cn.plugin:create_plugin"
+azurlane-campaign = "thebridge.builtin.azurlane_cn.campaign:create_plugin"
+azurlane-exercise = "thebridge.builtin.azurlane_cn.exercise_locator:create_plugin"
+macos-vision = "thebridge.builtin.macos_vision.plugin:create_plugin"
+text-locator = "thebridge.builtin.text_locator.plugin:create_plugin"
+
+[project.optional-dependencies]
+macos-vision = [
+    "pyobjc-framework-vision>=12.2.2 ; sys_platform == 'darwin'",
+]
 
 [dependency-groups]
 dev = ["ruff>=0.12"]

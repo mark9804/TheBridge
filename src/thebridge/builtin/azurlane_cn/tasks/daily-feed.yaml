@@ -1,0 +1,96 @@
+version: 1
+id: azurlane-cn.daily-feed
+title: 后宅补充一次食物并领取每日奖励
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    missions.page:
+      pattern: '^任务'
+      require: ['^前往$|^领取$']
+      absent: ['获得道[具县]']
+    missions.go:
+      pattern: '^前往$'
+      anchor: '后宅补充食物'
+    missions.claim:
+      pattern: '^领取$'
+      anchor: '后宅补充食物'
+    dorm.page:
+      pattern: '当前楼层|^EXP\+|^投食$'
+    dorm.hungry:
+      pattern: '^投食$'
+      require: ['^无视$']
+    dorm.exp:
+      pattern: '^确定$'
+      require: ['^EXP\+']
+    dorm.food-open:
+      pattern: '^食量'
+    food.item:
+      pattern: '^食物1000$'
+      offset: [0, -3]
+    food.added:
+      pattern: '^食量[1-9]\d*/\d+$'
+    dorm.return:
+      pattern: '当前楼层'
+      absent: ['^食物1000$']
+    reward.page:
+      pattern: '^获得道[具县]$'
+    reward.continue:
+      pattern: '^点击继续$'
+      require: ['获得道[具县]']
+entry: missions
+states:
+  missions:
+    expect: missions.page
+    transitions:
+      - locate: missions.claim
+        action: tap_match
+        next: reward
+      - locate: missions.go
+        action: tap_match
+        next: dorm
+  dorm:
+    expect: dorm.page
+    transitions:
+      - locate: dorm.hungry
+        action: tap_match
+        next: food
+      - locate: dorm.exp
+        action: tap_match
+        next: dorm
+      - locate: dorm.food-open
+        action: tap_match
+        next: food
+  food:
+    expect: food.item
+    transitions:
+      - locate: food.item
+        action: tap_match
+        next: fed
+  fed:
+    expect: food.added
+    transitions:
+      - locate: food.added
+        action: back
+        next: return
+  return:
+    expect: dorm.return
+    transitions:
+      - locate: dorm.return
+        action: back
+        next: verify
+  verify:
+    expect: missions.page
+    transitions:
+      - locate: missions.claim
+        action: tap_match
+        next: reward
+  reward:
+    expect: reward.page
+    transitions:
+      - locate: reward.continue
+        action: tap_match
+        next: done
+  done:
+    expect: missions.page
+    terminal: true

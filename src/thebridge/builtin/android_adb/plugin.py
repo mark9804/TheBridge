@@ -79,6 +79,9 @@ class AdbDevice:
     async def tap(self, point: Point) -> None:
         await self._run("shell", "input", "tap", str(point.x), str(point.y))
 
+    async def back(self) -> None:
+        await self._run("shell", "input", "keyevent", "4")
+
 
 class AndroidAdbPlugin:
     spec = PluginSpec(

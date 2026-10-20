@@ -1,0 +1,1 @@
+"""macOS Vision text recognition."""

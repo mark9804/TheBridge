@@ -15,7 +15,7 @@ class StrictModel(BaseModel):
 
 class TransitionSpec(StrictModel):
     locate: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]+$")
-    action: Literal["tap_match"]
+    action: Literal["tap_match", "back"]
     next_state: str = Field(alias="next", pattern=r"^[a-z0-9][a-z0-9._-]+$")
 
 
@@ -30,6 +30,7 @@ class TaskSpec(StrictModel):
     id: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]+$")
     title: str
     stage: Literal["draft", "stable"] = "draft"
+    parameters: dict[str, object] = Field(default_factory=dict)
     requires: tuple[str, ...] = ()
     artifacts: tuple[ArtifactRequirement, ...] = ()
     entry: str

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import shutil
 from io import BytesIO
 
@@ -81,6 +82,32 @@ class AdbDevice:
 
     async def back(self) -> None:
         await self._run("shell", "input", "keyevent", "4")
+
+    async def restart_app(self, package: str) -> None:
+        resolved = await self._run(
+            "shell",
+            "cmd",
+            "package",
+            "resolve-activity",
+            "--brief",
+            "-a",
+            "android.intent.action.MAIN",
+            "-c",
+            "android.intent.category.LAUNCHER",
+            package,
+        )
+        components = [
+            line.strip()
+            for line in resolved.decode(errors="replace").splitlines()
+            if re.fullmatch(rf"{re.escape(package)}/[A-Za-z0-9_.$]+", line.strip())
+        ]
+        if len(components) != 1:
+            raise AdbError(f"could not resolve launcher activity for {package}")
+        await self._run("shell", "am", "force-stop", package)
+        started = await self._run("shell", "am", "start", "-n", components[0])
+        for line in started.decode(errors="replace").splitlines():
+            if line.startswith(("Error:", "Error type")):
+                raise AdbError(f"failed to launch {package}: {line}")
 
 
 class AndroidAdbPlugin:

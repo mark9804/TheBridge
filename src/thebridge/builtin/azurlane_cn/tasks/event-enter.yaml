@@ -1,0 +1,33 @@
+version: 1
+id: azurlane-cn.event-enter
+title: 从已选活动关卡进入地图
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    entry.briefing:
+      pattern: '^立刻前往$'
+      require: ['^关卡产出$']
+    entry.fleets:
+      pattern: '^立刻前往$'
+      require: ['^舰队选择$', '^可出击舰队数[:：]2/2$']
+    entry.map:
+      pattern: '^迎击$'
+      absent: ['^索[敌故]中$', '(?i)NOWSEARCHING']
+entry: briefing
+states:
+  briefing:
+    expect: entry.briefing
+    transitions:
+      - locate: entry.briefing
+        action: tap_match
+        next: fleets
+  fleets:
+    expect: entry.fleets
+    transitions:
+      - locate: entry.fleets
+        action: tap_match
+        next: map
+  map:
+    expect: entry.map
+    terminal: true

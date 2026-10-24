@@ -73,7 +73,7 @@ class StateRunner:
                             raise RuntimeError("locator returned a box outside the frame")
                         if transition.action == "back":
                             await device.back()
-                        else:
+                        elif transition.action == "tap_match":
                             await device.tap(match.box.center)
                         steps += 1
                         self.events.emit(

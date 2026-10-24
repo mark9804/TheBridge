@@ -1,0 +1,189 @@
+version: 1
+id: azurlane-cn.event-stage
+title: 单个活动关卡持续作战
+stage: draft
+requires: [android.device@1, vision.locator@1, azurlane-cn.map-observer@1]
+parameters:
+  plugins:
+    builtin.azurlane-event:
+      stage: SP
+      policy: boss_first
+      mob_fleet: 1
+      boss_fleet: 2
+      rules:
+        entry.briefing:
+          pattern: '^立刻前往$'
+          require: ['^关卡产出$']
+        entry.fleets:
+          pattern: '^立刻前往$'
+          require: ['^舰队选择$', '^可出击舰队数[:：]2/2$']
+        entry.map:
+          pattern: '^迎击$'
+          absent: ['^索[敌故]中$', '(?i)NOWSEARCHING']
+        battle.ready:
+          pattern: '^出击$'
+          require: ['(?i)^编队(?:FORMATION)?$', '击破敌方舰队']
+        battle.victory:
+          pattern: '^点击继续$'
+          require: ['^战斗评价$', '大获全胜']
+        battle.reward:
+          pattern: '^获得道[具县]$'
+        battle.reward-continue:
+          pattern: '^点击继续$'
+          require: ['^获得道[具县]$']
+        battle.after-reward:
+          pattern: '(?i)^EXP|^SHIPTYPE$'
+          absent: ['^获得道[具县]$']
+        battle.ship-continue:
+          pattern: '(?i)^SHIPTYPE$'
+          require: ['^检视$', '^锁定$']
+        battle.ship-details-continue:
+          pattern: '(?i)^SHIPTYPE$'
+          require: ['^舰名']
+        battle.report:
+          pattern: '(?i)^EXP'
+          absent: ['^获得道[具县]$']
+        battle.report-confirm:
+          pattern: '^确定$'
+          require: ['(?i)^EXP']
+          absent: ['^获得道[具县]$']
+        battle.settlement-leave:
+          pattern: '^离开$'
+          require: ['(?i)SETTLEREWARDS', '^再次前往$']
+entry: resume
+states:
+  resume:
+    expect: event.screen
+    transitions:
+      - locate: event.needs-fleets
+        action: observe
+        next: needs-fleets
+      - locate: battle.settlement-leave
+        action: observe
+        next: returning
+      - locate: event.completed
+        action: observe
+        next: completed
+      - locate: event.briefing-go
+        action: observe
+        next: briefing
+      - locate: event.fleets-go
+        action: observe
+        next: fleets
+      - locate: battle.ready
+        action: observe
+        next: preparation
+      - locate: event.victory
+        action: observe
+        next: battle
+      - locate: battle.reward
+        action: observe
+        next: reward
+      - locate: battle.after-reward
+        action: observe
+        next: after-reward
+      - locate: event.map
+        action: observe
+        next: map
+      - locate: event.stage-select
+        action: observe
+        next: stage-select
+  stage-select:
+    expect: event.stage-select
+    transitions:
+      - locate: event.stage-select
+        action: tap_match
+        next: briefing
+  briefing:
+    expect: event.briefing-go
+    transitions:
+      - locate: event.briefing-go
+        action: tap_match
+        next: fleets
+  fleets:
+    expect: event.screen
+    transitions:
+      - locate: event.needs-fleets
+        action: observe
+        next: needs-fleets
+      - locate: event.fleets-go
+        action: tap_match
+        next: map
+  map:
+    expect: event.map
+    transitions:
+      - locate: event.map-action
+        action: tap_match
+        next: map-outcome
+  map-outcome:
+    expect: event.map-outcome
+    transitions:
+      - locate: battle.ready
+        action: observe
+        next: preparation
+      - locate: event.map-action
+        action: tap_match
+        next: map-outcome
+  preparation:
+    expect: battle.ready
+    transitions:
+      - locate: battle.ready
+        action: tap_match
+        next: battle
+  battle:
+    expect: event.victory
+    transitions:
+      - locate: event.victory
+        action: tap_match
+        next: reward
+  reward:
+    expect: battle.reward
+    transitions:
+      - locate: battle.reward-continue
+        action: tap_match
+        next: after-reward
+  after-reward:
+    expect: battle.after-reward
+    transitions:
+      - locate: battle.ship-continue
+        action: tap_match
+        next: report
+      - locate: battle.ship-details-continue
+        action: tap_match
+        next: report
+      - locate: battle.report-confirm
+        action: tap_match
+        next: returning
+  report:
+    expect: battle.report
+    transitions:
+      - locate: battle.report-confirm
+        action: tap_match
+        next: returning
+  returning:
+    expect: event.returning
+    transitions:
+      - locate: battle.settlement-leave
+        action: tap_match
+        next: settlement-exit
+      - locate: event.completed
+        action: observe
+        next: completed
+      - locate: event.map
+        action: observe
+        next: map
+  settlement-exit:
+    expect: event.returning
+    transitions:
+      - locate: event.completed
+        action: observe
+        next: completed
+      - locate: event.map
+        action: observe
+        next: map
+  completed:
+    expect: event.completed
+    terminal: true
+  needs-fleets:
+    expect: event.needs-fleets
+    terminal: true

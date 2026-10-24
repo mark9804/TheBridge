@@ -14,6 +14,8 @@ from thebridge_core.events import Event, EventBus
 from thebridge_core.plugins import PluginHost
 from thebridge_core.runner import RunResult, StateRunner
 
+from thebridge.builtin.android_adb.plugin import AdbDevice
+
 DEFAULT_PLUGINS = ("builtin.android-adb", "builtin.macos-vision", "builtin.text-locator")
 
 
@@ -49,6 +51,7 @@ async def run_task(
     timeout_seconds: float = 180,
     trace_dir: Path | None = None,
     plugins: Sequence[str] = DEFAULT_PLUGINS,
+    restart_app: str | None = None,
 ) -> RunResult:
     if timeout_seconds <= 0:
         raise ValueError("timeout must be positive")
@@ -86,6 +89,7 @@ async def run_task(
                 event_log.flush()
 
         async with events.subscribe() as queue:
+
             async def report_events() -> None:
                 while True:
                     write_event(await queue.get())
@@ -102,6 +106,10 @@ async def run_task(
                 if missing_artifacts:
                     raise RuntimeError(f"missing task artifacts: {', '.join(missing_artifacts)}")
                 device = host.services["android.device@1"]
+                if restart_app is not None:
+                    if not isinstance(device, AdbDevice):
+                        raise RuntimeError("--restart-app requires the builtin Android ADB device")
+                    await device.restart_app(restart_app)
                 if trace_dir is not None:
                     device = RecordingDevice(device, trace_dir, events)
                 return await StateRunner(events).run(

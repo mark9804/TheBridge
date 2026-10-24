@@ -35,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run", help="通过 ADB 和视觉插件执行任务 DSL")
     run.add_argument("path", type=Path)
     run.add_argument("--serial")
+    run.add_argument("--restart-app", metavar="PACKAGE", help="显式重启指定 Android 应用后执行任务")
     run.add_argument("--config", type=Path, help="插件 ID 到配置的 JSON 文件")
     run.add_argument("--timeout", type=float, default=180)
     run.add_argument("--trace-dir", type=Path, help="保存原始截图与事件日志")
@@ -119,6 +120,16 @@ async def run_check() -> None:
     )
     assert back_device.backs == 1 and back_device.taps == []
 
+    observe_task = task.model_dump(by_alias=True)
+    observe_task["states"]["start"]["transitions"][0]["action"] = "observe"
+    observe_device = Device()
+    observed = await StateRunner(EventBus()).run(
+        parse_task(observe_task), observe_device, Locator(), timeout_seconds=1
+    )
+    assert observed.final_state == "done" and observed.steps == 1
+    assert observe_device.frame_id == 2
+    assert observe_device.taps == [] and observe_device.backs == 0
+
     class HangingDevice(Device):
         async def screenshot(self) -> Frame:
             await asyncio.Event().wait()
@@ -180,6 +191,11 @@ async def run_check() -> None:
         assert "ambiguous service provider" in str(exc)
     else:
         raise AssertionError("ambiguous provider unexpectedly selected")
+    from thebridge.builtin.azurlane_cn.event_locator import check_event
+    from thebridge.builtin.azurlane_cn.map_observation import check_map_observation
+
+    await check_map_observation()
+    await check_event()
     print("TheBridge check passed")
 
 
@@ -200,6 +216,7 @@ def main() -> None:
                     timeout_seconds=args.timeout,
                     trace_dir=args.trace_dir,
                     plugins=args.plugins,
+                    restart_app=args.restart_app,
                 )
             )
         except Exception as exc:

@@ -69,6 +69,10 @@ uv run --extra macos-vision thebridge run \
 | `daily-build.yaml` | 已在「每日」任务页，可见「建造舰船1次」；允许消耗 600 物资和 1 个心智魔方 | 轻型舰建造一次后领取对应每日奖励，再回到任务页 |
 | `daily-campaign.yaml` | 已在主线章节页；目标关卡已开放、已有可用舰队 | 连续作战结算次数达到配置值后返回章节页 |
 | `daily-exercise.yaml` | 已在主界面、每日任务、出击或演习页；已有可用演习舰队 | 实际演习次数为 `0/10` 后退出演习页 |
+| `login.yaml` | 游戏启动中或已在登录认证页，账号保持登录 | 点击认证提示后确认主界面的出击、任务和建造入口 |
+| `event-enter.yaml` | 已选定活动关卡并打开详情页；两支水面舰队可出击 | 确认舰队数 `2/2` 后进入地图，等待索敌动画结束 |
+| `event-battle.yaml` | 已在活动敌舰的稳定编队出击页 | 单场结算后返回地图或选关页；已实测护卫、Boss及单艘掉落展示 |
+| `event-stage.yaml` | 指定单关的选关/详情/已支持编队页或地图；SP 从已配队进入的地图开始 | 持续地图决策与多战结算；实测 SP 恢复后连续完成 5 场护卫及 Boss；地图仍由人工/Codex 输入 |
 
 后宅补食流程当前只覆盖上述饥饿起点；成功依据是领取对应每日奖励后返回任务页。
 食物库存不足或文字未识别时可能超时，需要人工处理。
@@ -121,6 +125,81 @@ runs: 3
 任务默认插件配置来自 `parameters.plugins`；JSON 配置按插件顶层字段覆盖，
 显式传入 `stages` 或 `rules` 会整体替换对应字段。CLI `--serial` 优先于配置。
 超时会停止本次脚本，不会自动取消游戏内已启动的连续作战。
+
+确认游戏卡死时，先停止原任务，再显式重启游戏并运行登录流程：
+
+```bash
+uv run --extra macos-vision thebridge run \
+  src/thebridge/builtin/azurlane_cn/tasks/login.yaml \
+  --serial DEVICE_SERIAL --restart-app com.bilibili.azurlane \
+  --timeout 180 --trace-dir /tmp/thebridge-login
+```
+
+包名应与设备实际安装的版本一致。重启只终止目标游戏包并启动其 launcher，保留应用数据。
+登录任务等待“触摸屏幕执行权限认证”，点击一次后等待主界面确认；不会凭启动命令成功
+认定恢复完成。当前已验证同账号直接认证回首页；阻挡登录的额外页面会等待至超时，
+首页出现后延迟弹出的通知仍需接续任务处理。普通任务超时不会自动触发重启，
+恢复后应重新识别关卡状态再续跑。
+
+选定活动关卡并打开详情后，运行进图任务：
+
+```bash
+uv run --extra macos-vision thebridge run \
+  src/thebridge/builtin/azurlane_cn/tasks/event-enter.yaml \
+  --serial DEVICE_SERIAL --timeout 120 --trace-dir /tmp/thebridge-event-enter
+```
+
+该任务从「关卡产出」详情页点击「立刻前往」，识别舰队选择页的
+「可出击舰队数：2/2」后再次前往，不要求潜艇编队；最后确认地图「迎击」且索敌动画已消失。
+T2、T3 的真实入口均已以 5 帧、2 次点击完成。选关仍由操作者完成，任务不会自动选择下一关。
+
+在地图上选中敌舰、进入稳定的编队出击页后，运行单战任务：
+
+```bash
+uv run --extra macos-vision thebridge run \
+  src/thebridge/builtin/azurlane_cn/tasks/event-battle.yaml \
+  --serial DEVICE_SERIAL --timeout 300 --trace-dir /tmp/thebridge-event-battle
+```
+
+活动棋盘的 `battlefield.select_target` 当前接收结构化网格观察，默认 `policy="clear_all"`，
+用四邻域 BFS 选择最近可达护卫，确认计数归零后才允许 Boss。
+SP 只要求通关时，调用者可显式传入 `policy="boss_first"`：优先攻击可达 Boss，
+或在行动范围内朝 Boss 分段推进；Boss 尚未出现、不可达或无法安全推进时继续选择护卫。
+该策略不要求护卫计数归零或已知，仍要求已知行动范围和可通行地图。
+当前白区内无可攻击目标时，沿已知地图选择目标并只返回本步允许范围内的移动前缀；
+`Selection.reaches_target` 为假时仅移动到 `path[-1]`，不能直接点击远处的 `target.cell`。
+每段只点击一个终点，段内路线由游戏自动寻路。T1 实测超出白区的终点会提示
+“目标点超出移动范围”；不能把游戏自动寻路等同于取消本次行动范围限制。
+每次战斗后需重新观察增援和左上角敌舰计数；`clear_all` 下计数未知或大于零时不会选择 Boss。
+行动范围区分 `bounded`、`unrestricted`、`unknown`；没有白区不自动等于无限移动。
+目前网格和计数仍由人工观察提供，尚未实现全自动地图解析与清图。
+`event-battle.yaml` 已实测护卫、Boss 及有/无舰船掉落的结算路径。
+T3 里士满掉落页已实测使用 `SHIPTYPE` 加「舰名」识别继续结算。
+当前胜利门禁要求「大获全胜」（S）；其他评级与真实失败处理尚未验证，未匹配时会等待至超时。
+经验结算后先检查是否出现 `SETTLE REWARDS` 结算奖励弹窗：有则点击「离开」，
+否则通过 `observe` 仅观察确认返回地图或选关页。两条分支均已在 T6 真机验证；
+其中 Boss 战以 20 帧、6 个动作通过结算奖励弹窗并点击「离开」。
+T5 Boss 战后的同类弹窗此前由人工点击「离开」，现已沉淀为上述分支。
+T1 已按七支护卫全部清除、普通敌舰计数归零、再击破 Boss 的顺序完成三星，选关页显示 Clear。
+T2 已由一队清除八支护卫，再由二队击破 Boss；T2 至 T6 均已显示 Clear 三星。
+SP 配队后已通关：一队打 7 支护卫，Boss 出现后切二队直接接战，8 场均 S；
+选关页显示 Clear、今日次数 `0/1`。本次 SP 已确认无限移动，未清空剩余护卫。
+当前清图规则为一队清道中、二队打 Boss；没有补给点时继续执行道中任务，不因弹药匮乏换队。
+T1–T6 真机流程由人工读图驱动地图操作，入口和单战 YAML 独立运行；SP 使用下述持续任务。
+实测入场动画期间点击可能无效，当前 runner 会等待至超时，不会自动重试该点击。
+
+现已整理为 `event-stage.yaml` 单关持续任务：`builtin.azurlane-event` 消费地图观察，
+选择目标、单次移动终点和舰队，等待新帧确认后继续；普通结算由 DSL 串联，
+无需每场战斗重新启动命令。默认 SP/`boss_first`，可在 YAML 中修改关卡、策略与舰队职责。
+只有本次运行确认 Boss 胜利并返回目标选关页才到达 `completed`；`needs-fleets` 仅表示需要配队。
+
+地图视觉仍是待接环节。默认 `builtin.azurlane-map-input` 将原图和 JSON Schema 写入本机缓存，
+等待人工或 Codex 提供结构化观察；其他视觉插件可实现 `azurlane-cn.map-observer@1` 替换它。
+持续任务已在 SP 真机验证：修正攻击后过渡帧的等待逻辑后，一次运行连续完成后 5 场护卫及 Boss，
+以 `completed` 退出。整次尝试仍有进图、落点修正、地图平移 3 次直接介入，并恢复 runner 一次；
+所有地图视觉 JSON 均由 Codex 提供，尚无自动棋盘解析、地图平移或真实战败撤退分支。
+SP 配队页已有正例，自动确认仍待实现。运行命令、配置与观察输入格式见
+[活动任务包说明](docs/ACTIVITY_TASKS.md)。
 
 军事演习使用独立的对手选择插件：
 

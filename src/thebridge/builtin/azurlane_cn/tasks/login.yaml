@@ -1,0 +1,25 @@
+version: 1
+id: azurlane-cn.login
+title: 等待登录认证并进入主界面
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    login.authenticate:
+      pattern: '^触摸屏幕执行权限认证$'
+      require: ['^服务器[：:]?$']
+    login.home:
+      pattern: '^出击$'
+      require: ['^任务$', '^建造$']
+      absent: ['触摸屏幕.*认证']
+entry: authentication
+states:
+  authentication:
+    expect: login.authenticate
+    transitions:
+      - locate: login.authenticate
+        action: tap_match
+        next: home
+  home:
+    expect: login.home
+    terminal: true

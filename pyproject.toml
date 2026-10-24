@@ -24,6 +24,8 @@ android-adb = "thebridge.builtin.android_adb.plugin:create_plugin"
 azurlane-cn = "thebridge.builtin.azurlane_cn.plugin:create_plugin"
 azurlane-campaign = "thebridge.builtin.azurlane_cn.campaign:create_plugin"
 azurlane-exercise = "thebridge.builtin.azurlane_cn.exercise_locator:create_plugin"
+azurlane-event = "thebridge.builtin.azurlane_cn.event_locator:create_plugin"
+azurlane-map-input = "thebridge.builtin.azurlane_cn.map_observation:create_plugin"
 macos-vision = "thebridge.builtin.macos_vision.plugin:create_plugin"
 text-locator = "thebridge.builtin.text_locator.plugin:create_plugin"
 

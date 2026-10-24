@@ -1,0 +1,92 @@
+version: 1
+id: azurlane-cn.event-battle
+title: 单次活动战斗与结算
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    battle.ready:
+      pattern: '^出击$'
+      require: ['(?i)^编队(?:FORMATION)?$', '击破敌方舰队']
+    battle.victory:
+      pattern: '^点击继续$'
+      require: ['^战斗评价$', '大获全胜']
+    battle.reward:
+      pattern: '^获得道[具县]$'
+    battle.reward-continue:
+      pattern: '^点击继续$'
+      require: ['^获得道[具县]$']
+    battle.after-reward:
+      pattern: '(?i)^EXP|^SHIPTYPE$'
+      absent: ['^获得道[具县]$']
+    battle.ship-continue:
+      pattern: '(?i)^SHIPTYPE$'
+      require: ['^检视$', '^锁定$']
+    battle.ship-details-continue:
+      pattern: '(?i)^SHIPTYPE$'
+      require: ['^舰名']
+    battle.report:
+      pattern: '(?i)^EXP'
+      absent: ['^获得道[具县]$']
+    battle.report-confirm:
+      pattern: '^确定$'
+      require: ['(?i)^EXP']
+      absent: ['^获得道[具县]$']
+    battle.returning:
+      pattern: '(?i)^迎击$|^作战模式$|SETTLEREWARDS'
+    battle.settlement-leave:
+      pattern: '^离开$'
+      require: ['(?i)SETTLEREWARDS', '^再次前往$']
+    battle.returned:
+      pattern: '^迎击$|^作战模式$'
+      absent: ['^索[敌故]中$', '(?i)NOWSEARCHING', '(?i)SETTLEREWARDS']
+entry: preparation
+states:
+  preparation:
+    expect: battle.ready
+    transitions:
+      - locate: battle.ready
+        action: tap_match
+        next: battle
+  battle:
+    expect: battle.victory
+    transitions:
+      - locate: battle.victory
+        action: tap_match
+        next: reward
+  reward:
+    expect: battle.reward
+    transitions:
+      - locate: battle.reward-continue
+        action: tap_match
+        next: after-reward
+  after-reward:
+    expect: battle.after-reward
+    transitions:
+      - locate: battle.ship-continue
+        action: tap_match
+        next: report
+      - locate: battle.ship-details-continue
+        action: tap_match
+        next: report
+      - locate: battle.report-confirm
+        action: tap_match
+        next: returning
+  report:
+    expect: battle.report
+    transitions:
+      - locate: battle.report-confirm
+        action: tap_match
+        next: returning
+  returning:
+    expect: battle.returning
+    transitions:
+      - locate: battle.settlement-leave
+        action: tap_match
+        next: done
+      - locate: battle.returned
+        action: observe
+        next: done
+  done:
+    expect: battle.returned
+    terminal: true

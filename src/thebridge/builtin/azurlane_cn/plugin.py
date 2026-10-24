@@ -48,7 +48,7 @@ class AzurLaneCnPlugin:
         context.register_task(task)
         task_directory = files(__package__).joinpath("tasks")
         for task_file in sorted(task_directory.iterdir(), key=lambda item: item.name):
-            if task_file.name.startswith("daily-") and task_file.name.endswith(".yaml"):
+            if task_file.name.endswith(".yaml") and task_file.name != "commission.yaml":
                 context.register_task(
                     parse_task(yaml.safe_load(task_file.read_text(encoding="utf-8")))
                 )

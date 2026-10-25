@@ -39,6 +39,9 @@ class RecordingDevice:
     async def tap(self, point: Point) -> None:
         await self.device.tap(point)
 
+    async def swipe(self, start: Point, end: Point, duration_ms: int = 600) -> None:
+        await self.device.swipe(start, end, duration_ms)
+
     async def back(self) -> None:
         await self.device.back()
 

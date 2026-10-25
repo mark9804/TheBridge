@@ -15,7 +15,7 @@ class StrictModel(BaseModel):
 
 class TransitionSpec(StrictModel):
     locate: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]+$")
-    action: Literal["tap_match", "back", "observe"]
+    action: Literal["tap_match", "back", "observe", "swipe_left", "swipe_right"]
     next_state: str = Field(alias="next", pattern=r"^[a-z0-9][a-z0-9._-]+$")
 
 

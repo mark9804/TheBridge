@@ -111,3 +111,45 @@ uv run --extra macos-vision thebridge run \
 确实卡死时，可显式选择 `--restart-app com.bilibili.azurlane` 配合 `login.yaml` 恢复；它只重启指定应用，不清除应用数据。OCR 超时本身不能触发杀游戏，也不会自动接续原任务。
 
 地图服务协议为 `azurlane-cn.map-observer@1`：实现 `async observe(frame) -> BoardObservation` 的其他插件可以替换本地输入插件，活动 DSL 和选择器不必更换。目前没有接入自动 CV、远端模型服务或自动平移地图；这些是减少地图标注介入的后续实现点。模型和截图等运行资源不进入 Git。
+
+## 剧情模式
+
+活动选关页左下角点击“剧情模式”进入剧情列表，右下角“已完成阶段”是进度依据。金色书本/双剑表示已完成，白色书本表示可播放、白色双剑表示包含战斗，锁形节点显示前置条件。向左拖动可查看右侧后续节点；完成一条后本次活动会自动移动到下一条。长标题有滚动裁剪，不能把截断的 OCR 编号当成完整节点 ID。
+
+`event-story.yaml` 负责已经进入的单条剧情：跳过 → 确认 → 等待后续剧情或返回列表。遇到自动战斗时保持等待、不发输入；战斗后再次出现剧情，则继续跳过与确认。跳过确认使用“是否确定跳过”约束，返回使用顶部剧情标题和完成计数；确认框尚未消失时不重复点击。
+
+```sh
+uv run --extra macos-vision thebridge run \
+  src/thebridge/builtin/azurlane_cn/tasks/event-story.yaml \
+  --serial SERIAL --timeout 300 \
+  --trace-dir /tmp/thebridge-story-new-run
+```
+
+先手动选择一条未完成剧情，轨迹目录使用新目录。任务也能从正在播放/自动战斗中恢复；如果已在剧情列表，则不点击，直接到 `returned`。该终态只证明返回列表，新增完成必须比较运行前后的计数，不能把启动时已有进度当成本次完成。
+
+2026-10-24 首次单条任务试验从 `0/26` 推进到 `6/26`：EPS-1、EP1-1～EP1-4 为纯剧情；EP2-1 实测剧情 → 自动短战斗 → 后续剧情 → 列表。EP1-3、EP1-4 各由单次 YAML 自动返回；EP2-1 在补入循环和修正返回 OCR 门禁时分段恢复。后续全量任务的完整进度与混合关卡验证见下文。
+
+单条任务不负责选关或比较进度基线。未知战备/奖励/失败页保持等待并受总超时约束，不套用普通活动战斗的领奖流程。
+
+### 全部剧情扫描
+
+从剧情列表启动 `event-story-all.yaml`，启用专用定位插件：
+
+```sh
+thebridge_story_run="$(mktemp -d /tmp/thebridge-story.XXXXXX)"
+uv run --extra macos-vision thebridge run \
+  src/thebridge/builtin/azurlane_cn/tasks/event-story-all.yaml \
+  --serial SERIAL \
+  --plugins builtin.android-adb builtin.macos-vision builtin.azurlane-story \
+  --timeout 2400 --trace-dir "$thebridge_story_run/trace"
+```
+
+当前帧中央文本提供候选标题，STORY 锚点和文字高度定位图标；金色标为完成，白色标为可入，“完成 EP…”前置条件标为锁定。图标被屏幕裁断时暂不点击，滚动标题不要求完整 EP 前缀。
+
+可见未完成节点优先进入；没有候选时向左拖动，到边界反向。拖后连续两帧布局稳定才继续；边界必须同时满足位置和节点标识未变，不能只凭等距图标仍在原位置判断。`parameters.plugins.builtin.azurlane-story.swipe_region` 为相对当前画面的拖动矩形，`max_swipes_without_progress` 限制无进度扫描。遍历两端仍找不到候选会停止并保留轨迹。
+
+每次选关记录当前完成数，返回后必须增长再继续；计数达到总数才进入 `completed`。进度数字根据 OCR 定位的文字框局部放大重读，处理实机 `7` 被全图识别成 `1` 的情况。OCR 无有效结果时等待，不推测进度或反复进入旧节点。默认插件列表中不要混入 `builtin.text-locator`，避免重复提供定位服务。
+
+2026-10-24 已从 `6/26` 完成至 `26/26`，5 个心智魔方奖励显示已领取。最后 12 条播放由同一进程连续完成，两次实际边界反向扫描找回了漏识节点；本轮前半段修复 OCR/锁定条件/编号边界时有多次任务恢复，最后奖励分支另外补入，不是整轮零干预一次运行。
+
+完成奖励仅匹配“获得道具”且含“心智魔方”，关闭后等待纯列表；终态支持 OCR 把 `26/26已领取` 合并为同一段文字。最终奖励与终态规则已用真实截图回放验证（重复奖励帧不重复点击），实机终态补测期间设备被其他操作带离剧情页，未取得最终修订版的完整实机正常退出记录。运行时应保持设备由一个控制者操作；结束证据以剧情完成计数为准。

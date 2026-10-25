@@ -80,6 +80,18 @@ class AdbDevice:
     async def tap(self, point: Point) -> None:
         await self._run("shell", "input", "tap", str(point.x), str(point.y))
 
+    async def swipe(self, start: Point, end: Point, duration_ms: int = 600) -> None:
+        await self._run(
+            "shell",
+            "input",
+            "swipe",
+            str(start.x),
+            str(start.y),
+            str(end.x),
+            str(end.y),
+            str(duration_ms),
+        )
+
     async def back(self) -> None:
         await self._run("shell", "input", "keyevent", "4")
 

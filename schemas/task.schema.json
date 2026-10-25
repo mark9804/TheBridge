@@ -147,7 +147,9 @@
           "enum": [
             "tap_match",
             "back",
-            "observe"
+            "observe",
+            "swipe_left",
+            "swipe_right"
           ]
         },
         "next": {

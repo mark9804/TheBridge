@@ -72,19 +72,24 @@ async def run_check() -> None:
     )
 
     class Device:
-        def __init__(self) -> None:
+        def __init__(self, shape: tuple[int, int] = (8, 12)) -> None:
             self.frame_id = 0
+            self.shape = shape
             self.taps: list[Point] = []
+            self.swipes: list[tuple[Point, Point, int]] = []
             self.backs = 0
 
         async def screenshot(self) -> Frame:
             self.frame_id += 1
-            pixels = np.zeros((8, 12, 3), dtype=np.uint8)
+            pixels = np.zeros((*self.shape, 3), dtype=np.uint8)
             pixels[0, 0] = (11, 22, 33)
             return Frame(self.frame_id, pixels)
 
         async def tap(self, point: Point) -> None:
             self.taps.append(point)
+
+        async def swipe(self, start: Point, end: Point, duration_ms: int = 600) -> None:
+            self.swipes.append((start, end, duration_ms))
 
         async def back(self) -> None:
             self.backs += 1
@@ -129,6 +134,43 @@ async def run_check() -> None:
     assert observed.final_state == "done" and observed.steps == 1
     assert observe_device.frame_id == 2
     assert observe_device.taps == [] and observe_device.backs == 0
+
+    class SwipeLocator(Locator):
+        async def locate(self, frame: Frame, locator_id: str) -> Match | None:
+            if await super().locate(frame, locator_id) is None:
+                return None
+            return Match(frame.id, Rect(250, 900, 2950, 1500))
+
+    for action, start, end in (
+        ("swipe_left", Point(2949, 1200), Point(250, 1200)),
+        ("swipe_right", Point(250, 1200), Point(2949, 1200)),
+    ):
+        swipe_task = task.model_dump(by_alias=True)
+        swipe_task["states"]["start"]["transitions"][0]["action"] = action
+        swipe_device = Device((2136, 3200))
+        with TemporaryDirectory(prefix="thebridge-swipe-check-") as directory:
+            recording = RecordingDevice(swipe_device, Path(directory), EventBus())
+            swiped = await StateRunner(EventBus()).run(
+                parse_task(swipe_task), recording, SwipeLocator(), timeout_seconds=5
+            )
+            with Image.open(Path(directory) / "000002.png") as image:
+                assert image.size == (3200, 2136)
+        assert swiped.final_state == "done" and swiped.steps == 1
+        assert swipe_device.swipes == [(start, end, 600)]
+        assert swipe_device.taps == [] and swipe_device.backs == 0
+
+    from thebridge.builtin.android_adb.plugin import AdbDevice
+
+    class FakeAdb(AdbDevice):
+        async def _run(self, *args: str) -> bytes:
+            self.command = args
+            return b""
+
+    adb = FakeAdb("adb", "offline-check", 1)
+    await adb.swipe(Point(2949, 1200), Point(250, 1200))
+    assert adb.command == ("shell", "input", "swipe", "2949", "1200", "250", "1200", "600")
+    await adb.swipe(Point(250, 1200), Point(2949, 1200), 750)
+    assert adb.command == ("shell", "input", "swipe", "250", "1200", "2949", "1200", "750")
 
     class HangingDevice(Device):
         async def screenshot(self) -> Frame:
@@ -193,9 +235,11 @@ async def run_check() -> None:
         raise AssertionError("ambiguous provider unexpectedly selected")
     from thebridge.builtin.azurlane_cn.event_locator import check_event
     from thebridge.builtin.azurlane_cn.map_observation import check_map_observation
+    from thebridge.builtin.azurlane_cn.story_locator import check_story_navigation
 
     await check_map_observation()
     await check_event()
+    await check_story_navigation()
     print("TheBridge check passed")
 
 

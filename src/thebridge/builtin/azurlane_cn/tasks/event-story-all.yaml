@@ -1,0 +1,81 @@
+version: 1
+id: azurlane-cn.event-story-all
+title: 活动剧情扫描与全部完成
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  plugins:
+    builtin.azurlane-story:
+      swipe_region: [0.25, 0.64, 0.75, 0.72]
+      max_swipes_without_progress: 40
+      rules:
+        story.playing:
+          pattern: '^跳过'
+          require: ['^自动']
+          absent: ['是否确定跳过']
+        story.skip-confirm:
+          pattern: '^确定$'
+          require: ['是否确定跳过']
+        story.after-skip:
+          pattern: '^跳过|^已完成阶段[:：]\d+/\d+(?:已领取)?$|^获得道[具县]$'
+          absent: ['是否确定跳过']
+        story.reward-continue:
+          pattern: '^点击继续$'
+          require: ['^获得道[具县]$', '^心智魔方$']
+        story.returned:
+          pattern: '^已完成阶段[:：]\d+/\d+(?:已领取)?$'
+          require: ['剧情$']
+          absent: ['^跳过', '是否确定跳过', '^获得道[具县]$']
+entry: returning
+states:
+  scan:
+    expect: story-nav.list
+    transitions:
+      - locate: story-nav.completed
+        action: observe
+        next: completed
+      - locate: story-nav.next
+        action: tap_match
+        next: opening
+      - locate: story-nav.swipe-left
+        action: swipe_left
+        next: scan
+      - locate: story-nav.swipe-right
+        action: swipe_right
+        next: scan
+  opening:
+    expect: story-nav.opened
+    transitions:
+      - locate: story.playing
+        action: observe
+        next: playing
+      - locate: story.returned
+        action: observe
+        next: scan
+  playing:
+    expect: story.playing
+    transitions:
+      - locate: story.playing
+        action: tap_match
+        next: confirm
+  confirm:
+    expect: story.skip-confirm
+    transitions:
+      - locate: story.skip-confirm
+        action: tap_match
+        next: returning
+  returning:
+    expect: story.after-skip
+    transitions:
+      - locate: story.reward-continue
+        action: tap_match
+        next: scan
+      - locate: story.playing
+        action: observe
+        next: playing
+      - locate: story.returned
+        action: observe
+        next: scan
+  completed:
+    expect: story-nav.completed
+    terminal: true

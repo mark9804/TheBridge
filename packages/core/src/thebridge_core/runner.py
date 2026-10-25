@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from uuid import uuid4
 
-from thebridge_core.contracts import DeviceService, LocatorService
+from thebridge_core.contracts import DeviceService, LocatorService, Point
 from thebridge_core.dsl import TaskSpec
 from thebridge_core.events import EventBus
 
@@ -75,6 +75,15 @@ class StateRunner:
                             await device.back()
                         elif transition.action == "tap_match":
                             await device.tap(match.box.center)
+                        elif transition.action in ("swipe_left", "swipe_right"):
+                            left = Point(match.box.left, match.box.center.y)
+                            right = Point(match.box.right - 1, match.box.center.y)
+                            start, end = (
+                                (right, left)
+                                if transition.action == "swipe_left"
+                                else (left, right)
+                            )
+                            await device.swipe(start, end, 600)
                         steps += 1
                         self.events.emit(
                             "bridge.action.finished",
@@ -91,9 +100,7 @@ class StateRunner:
                         break
         except BaseException as exc:
             message = (
-                f"task timed out in state {state_id}"
-                if isinstance(exc, TimeoutError)
-                else str(exc)
+                f"task timed out in state {state_id}" if isinstance(exc, TimeoutError) else str(exc)
             )
             self.events.emit(
                 "bridge.run.failed",

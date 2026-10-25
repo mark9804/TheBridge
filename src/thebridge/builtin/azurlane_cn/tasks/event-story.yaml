@@ -1,0 +1,59 @@
+version: 1
+id: azurlane-cn.event-story
+title: 单条活动剧情跳过与返回
+stage: draft
+requires: [android.device@1, vision.locator@1]
+parameters:
+  locators:
+    story.playing:
+      pattern: '^跳过'
+      require: ['^自动']
+      absent: ['是否确定跳过']
+    story.skip-confirm:
+      pattern: '^确定$'
+      require: ['是否确定跳过']
+    story.after-skip:
+      pattern: '^跳过|^已完成阶段[:：]\d+/\d+(?:已领取)?$|^获得道[具县]$'
+      absent: ['是否确定跳过']
+    story.reward-continue:
+      pattern: '^点击继续$'
+      require: ['^获得道[具县]$', '^心智魔方$']
+    story.returned:
+      pattern: '^已完成阶段[:：]\d+/\d+(?:已领取)?$'
+      require: ['剧情$']
+      absent: ['^跳过', '是否确定跳过', '^获得道[具县]$']
+entry: returning
+states:
+  playing:
+    expect: story.playing
+    transitions:
+      - locate: story.playing
+        action: tap_match
+        next: confirm
+  confirm:
+    expect: story.skip-confirm
+    transitions:
+      - locate: story.skip-confirm
+        action: tap_match
+        next: returning
+  returning:
+    expect: story.after-skip
+    transitions:
+      - locate: story.reward-continue
+        action: tap_match
+        next: reward-exit
+      - locate: story.playing
+        action: observe
+        next: playing
+      - locate: story.returned
+        action: observe
+        next: returned
+  reward-exit:
+    expect: story.returned
+    transitions:
+      - locate: story.returned
+        action: observe
+        next: returned
+  returned:
+    expect: story.returned
+    terminal: true

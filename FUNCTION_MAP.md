@@ -6,12 +6,12 @@
 |---|---|---|---|
 | 可用 | CLI | `thebridge.__main__:main` | `serve`、`validate`、`run`、`check`；`run` 接收任务路径、设备、插件配置和日志目录 |
 | 可用 | 任务执行入口 | `thebridge.execution:run_task` | YAML 参数与 JSON 插件配置 → 插件激活/资源检查 → `StateRunner.run` → 插件停止 |
-| 可用 | 运行记录 | `thebridge.execution:RecordingDevice` | 保留原尺寸截图；透传 `tap`/`back`；`run_task` 输出事件并可写入 `events.jsonl` |
+| 可用 | 运行记录 | `thebridge.execution:RecordingDevice` | 保留原尺寸截图；透传 `tap`/`back`/`swipe`；`run_task` 输出事件并可写入 `events.jsonl` |
 | 可用 | API | `thebridge.app:app` | FastAPI 生命周期 → 插件激活 → REST/SSE；构建后托管 `web/dist` |
 | 可用 | 插件发现 | `thebridge_core.plugins:PluginHost.discover` | Python entry points `thebridge.plugins` → 轻量插件对象 |
 | 可用 | 插件生命周期 | `PluginHost.start`、`PluginHost.stop` | 服务依赖排序 → 资源预检 → 激活；停止时逆序撤销服务和任务 |
 | 可用 | 任务 DSL | `thebridge_core.dsl:parse_task`、`load_task` | YAML → Pydantic 校验 → `TaskSpec` |
-| 可用 | 状态执行 | `thebridge_core.runner:StateRunner.run` | 原始截图 → 状态识别 → 定位 → `tap_match`/`back`，或 `observe` 仅转移状态 → 下一帧确认 |
+| 可用 | 状态执行 | `thebridge_core.runner:StateRunner.run` | 原始截图 → 定位 → `tap_match`/`back`/`swipe_left`/`swipe_right`，或 `observe` 仅转态 → 下一帧；拖动端点来自当前Match.box |
 | 可用 | 事件 | `thebridge_core.events:EventBus.emit`、`subscribe` | 运行时事实 → 内部订阅者及 SSE 投影；事件不参与控制决策 |
 | 可用 | 资源预检 | `thebridge_core.artifacts:ArtifactStore.missing` | 插件/任务声明 → 源码树外固定 revision 缓存检查 |
 | 可用 | ADB 设备 | `thebridge.builtin.android_adb.plugin:create_plugin` | entry point → 原始截图、ADB tap、返回键 → `android.device@1` |
@@ -33,6 +33,10 @@
 | 草案 | 登录恢复 | `src/thebridge/builtin/azurlane_cn/tasks/login.yaml` | 等待认证提示 → 点击一次 → 主界面组合标识确认；重启由操作者显式触发 |
 | 草案 | 活动单战 | `src/thebridge/builtin/azurlane_cn/tasks/event-battle.yaml` | 从稳定编队页启动；实测护卫/Boss、有无舰船掉落、经验结算和返回；与地图观察/舰队切换/终点点击分离 |
 | 草案 | 活动进图 | `src/thebridge/builtin/azurlane_cn/tasks/event-enter.yaml` | 已选关卡详情→两水面舰队2/2→地图；沿用现有编成，不要求潜艇 |
+| 草案 | 活动剧情 | `src/thebridge/builtin/azurlane_cn/tasks/event-story.yaml` | 默认 TextLocator → 跳过/确认循环；自动战斗等待、后续剧情与心智魔方完成奖励；顶部剧情标题+完成计数（可带已领取）→ `returned` |
+| 草案 | 剧情节点视觉 | `story_nodes.find_story_nodes`、`read_story_progress` | 中央OCR文字+STORY锚点+图标金/白色 → 完成/锁定/可入节点；动态计数框局部放大OCR；不绑定固定屏幕坐标 |
+| 草案 | 剧情全量编排 | `story_locator.StoryLocator`、`tasks/event-story-all.yaml` | 当前可入节点→剧情循环→计数增长；无候选时左拖/边界反向，布局+STORY_CODE身份确认；实测26/26，满计数才completed；心智魔方完成奖励退出 |
+| 可用 | 剧情离线自检 | `check_story_navigation`、`check_story_nodes`、`check_story_progress_reader` | 选择/颜色/缩放、动态计数OCR、进度停滞、边界反向与等距新节点；由thebridge check调用 |
 | 草案 | 每日任务 | `src/thebridge/builtin/azurlane_cn/tasks/daily-raid.yaml`、`daily-rewards.yaml`、`daily-feed.yaml`、`daily-build.yaml`、`daily-campaign.yaml`、`daily-exercise.yaml` | CLI 直接加载；挑战从等级页、主线从章节页启动；演习支持任务/出击/演习入口；补食/轻型建造以领取对应每日奖励后返回为完成标记 |
 
 ## 当前主链
